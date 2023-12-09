@@ -1,0 +1,429 @@
+
+## ** variables.yml Example **
+#variables:
+#  # OPtion: Define a management Interface to protect OOB (in addition to lo0)
+#  mgmt_interface: vme.0
+#  # List of protocols used by the system/to allow
+#  dhcp: TRUE
+#  bgp: TRUE
+#  ntp: TRUE
+#  dns: TRUE
+#  radius: TRUE
+#  tacacs: TRUE
+#  snmp: TRUE
+#  icmp: TRUE
+#  ssh: TRUE
+#  netconf: TRUE
+#  https: FALSE
+#  # Enable this rule to allow return traffic (specific use case)
+#  permit_estblished: FALSE
+#  # Set if you are using a legacy system that does not support Policers or Counts
+#  legacy_support: FALSE
+#  # Set to overide firewall filter count or policer features
+#  disable_counts: FALSE
+#  disable_policer: FALSE
+#  management_ips:
+#  # List of Management Client IP Addresses
+#  - {subnet: 192.168.0.0, mask: 24}
+#  - {subnet: 192.168.1.0, mask: 24}
+#
+
+groups {
+    replace: filter_protect_re {
+        policy-options {
+            prefix-list bgp_neighbors {
+                apply-path "protocols bgp group <*> neighbor <*>";
+            }
+            prefix-list bgp_vrf_neighbors {
+                apply-path "routing-instances <*> protocols bgp group <*> neighbor <*>";
+            }
+            prefix-list ntp_servers {
+                apply-path "system ntp server <*>";
+            }
+            prefix-list dns_servers {
+                apply-path "system name-server <*>";
+            }
+            prefix-list tacacs_servers {
+                apply-path "system tacplus-server <*>";
+            }
+            prefix-list radius_servers {
+                apply-path "access radius-server <*>";
+            }
+            prefix-list radius_servers_system {
+                apply-path "system radius-server <*>";
+            }
+            prefix-list snmp_clients {
+                apply-path "snmp client-list <*> <*>";
+            }
+            prefix-list rfc1918 {
+                10.0.0.0/8;
+                172.16.0.0/12;
+                192.168.0.0/16;
+            }
+            prefix-list management_ips {
+                {%- for management_ip in management_ips %}
+                {{ management_ip.subnet}}/{{ management_ip.mask }};
+                {%- endfor %}
+            }
+        }
+        interfaces {
+            lo0 {
+                unit 0 {
+                    family inet {
+                        filter {
+                            input protect_re;
+                        }
+                    }
+                }
+            }
+            lo0 {
+                unit <*> {
+                    family inet {
+                        filter {
+                            input protect_re;
+                        }
+                    }
+                }
+            }
+            {%- if mgmt_interface %}
+            {{ mgmt_interface }} {
+                family inet {
+                    filter {
+                        input protect_re;
+                    }
+                }
+            } {% endif %}
+        }
+        firewall { 
+            {%- if not legacy_support %}{%- if not disable_policer %}
+            apply-groups filter_policer;
+            {%- endif %}{%- if not disable_logging %}
+            apply-groups filter_count;
+            {%- endif %}{%- endif %}
+            family inet {
+                filter protect_re {
+                    term discard_fragments {
+                        from {
+                            is-fragment;
+                        }
+                        then {
+                            discard;
+                        }
+                    }
+                    {%- if dhcp %}
+                    term allow_dhcp {
+                        from {
+                            protocol udp;
+                            source-port [ 67 68 ];
+                            destination-port [ 67 68 ];
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    {%- endif %}
+                    {%- if bgp %}
+                    term allow_bgp {
+                        from {
+                            source-prefix-list {
+                                bgp_neighbors;
+                                bgp_vrf_neighbors;
+                            }
+                            protocol tcp;
+                            destination-port bgp;
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    term allow_bfd {
+                        from {
+                            source-prefix-list {
+                                bgp_neighbors;
+                                bgp_vrf_neighbors;
+                            }
+                            protocol udp;
+                            destination-port [ 3784 4784 ];
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    {%- endif %}
+                    {%- if ntp %}
+                    term allow_ntp {
+                        from {
+                            source-prefix-list {
+                                ntp_servers;
+                            }
+                            protocol udp;
+                            destination-port ntp;
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    {%- endif %}
+                    {%- if dns %}
+                    term allow_dns {
+                        from {
+                            source-prefix-list {
+                                dns_servers;
+                            }
+                            protocol [ tcp udp ];
+                            source-port 53;
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    {%- endif %}
+                    {%- if radius %}
+                    term allow_radius {
+                        from {
+                            source-prefix-list {
+                                radius_servers;
+                                radius_servers_system;
+                            }
+                            protocol udp;
+                            source-port [ 1812 1813 ];
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    {%- endif %}
+                    {%- if tacacs %}
+                    term allow_tacacs {
+                        from {
+                            source-prefix-list {
+                                tacacs_servers;     
+                            }
+                            protocol [ tcp udp ];
+                            source-port [ tacacs tacacs-ds ];
+                            tcp-established;
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    {%- endif %}
+                    {%- if snmp %}
+                    term allow_snmp_clients {
+                        from {
+                            source-prefix-list {
+                                snmp_clients;
+                            }
+                            protocol udp;
+                            destination-port [ 161 10161 ];
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    {%- endif %}
+                    {%- if icmp %}
+                    term allow_icmp {
+                        from {
+                            protocol icmp;
+                            icmp-type [ echo-request echo-reply time-exceeded unreachable source-quench router-advertisement parameter-problem timestamp ];
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    term allow_udp_traceroute {
+                        from {
+                            protocol udp;
+                            {%- if not legacy_support %}
+                            ttl 1;
+                            {%- endif %}
+                            destination-port 33434-33534;
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    {%- endif %}
+                    {%- if ssh %}
+                    term allow_ssh {
+                        from {
+                            source-prefix-list {
+                                management_ips;
+                            }
+                            protocol tcp;
+                            destination-port 22;
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    {%- endif %}
+                    {%- if netconf %}
+                    term allow_netconf_ssh {
+                        from {
+                            source-prefix-list {
+                                management_ips;
+                            }
+                            protocol tcp;
+                            destination-port 830;
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    {%- endif %}
+                    {%- if https %}
+                    term allow_https {
+                        from {
+                            source-prefix-list {
+                                management_ips;
+                            }
+                            protocol tcp;
+                            destination-port https;
+                        }
+                        then {
+                            accept;
+                        }
+                    }
+                    {%- endif %}
+                    {%- if permit_established %}
+                    term PERMIT_ESTABLISHED {
+                        from {
+                            tcp-established;
+                        }
+                        then accept;
+                    }
+                    {%- endif %}
+                    term otherwise {
+                        then {
+                            discard;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    {%- if not legacy_support or not disable_policer %}
+    replace: filter_policer {
+        firewall { 
+            family inet {
+                filter protect_re {
+                    term <allow_udp_traceroute> {
+                        then {
+                            policer management-1m;
+                        }
+                    }
+                    term <allow_*> {
+                        then {
+                            policer management-5m;
+                        }
+                    }
+                }
+            }
+            policer management-1m {
+                if-exceeding {
+                    bandwidth-limit 1m;
+                    burst-size-limit 15k;
+                }
+                then discard;
+            }
+            policer management-5m {
+                if-exceeding {
+                    bandwidth-limit 5m;
+                    burst-size-limit 75k;
+                }
+                then discard;
+            }
+        }
+    }
+    {%- endif %}
+    {%- if not legacy_support or not disable_counts %}
+    replace: filter_count {
+        firewall { 
+            family inet {
+                filter protect_re {
+                    term <discard_fragments> {
+                        then {
+                            count discarded_fragments;
+                            log;
+                        }
+                    }
+                    term <allow_dhcp> {
+                        then {
+                            count allow_dhcp;
+                        }
+                    }
+                    term <allow_bgp> {
+                        then {
+                            count allow_bgp;
+                        }
+                    }
+                    term <allow_bfd> {
+                        then {
+                            count allow_bfd;
+                        }
+                    }
+                    term <allow_ntp> {
+                        then {
+                            count allow_ntp;
+                        }
+                    }
+                    term <allow_dns> {
+                        then {
+                            count allow_dns;
+                        }
+                    }
+                    term <allow_radius> {
+                        then {
+                            count allow_radius;
+                        }
+                    }
+                    term <allow_tacacs> {
+                        then {
+                            count allow_tacacs;
+                        }
+                    }
+                    term <allow_snmp_clients> {
+                        then {
+                            count allow_snmp_clients;
+                        }
+                    }
+                    term <allow_icmp> {
+                        then {
+                            count allow_icmp;
+                        }
+                    }
+                    term <allow_udp_traceroute> {
+                        then {
+                            count allow_udp_traceroute;
+                        }
+                    }
+                    term <allow_ssh> {
+                        then {
+                            count allow_ssh;
+                        }
+                    }
+                    term <allow_netconf_ssh> {
+                        then {
+                            count allow_netconf_ssh;
+                        }
+                    }
+                    term <allow_https> {
+                        then {
+                            count allow_https;
+                        }
+                    }
+                    term <otherwise> {
+                        then {
+                            count unknown_traffic;
+                            log;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    {%- endif %}
+}
+apply-groups [ filter_protect_re ];
