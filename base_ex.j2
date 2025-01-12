@@ -1,0 +1,225 @@
+## ** variables.yml Example **
+#hostname: Switch-01
+#domain_name: widgets.com
+#time_zone: America/Vancouver
+#name_servers:
+#  - 8.8.8.8
+#  - 1.1.1.1
+#ntp_servers:
+#  - 10.10.10.10
+#default_gateway: 10.10.10.1
+#radius:
+#  server: 10.10.10.10
+#  port: 1812
+#  acc_port: 1813
+#  secret: "dont put it here"
+#  source_ip: 10.10.10.2
+#web_management: TRUE
+#mgmt_port_used: FALSE
+## List of networks and vlans used, omit routable_ip if you don't want L3 interfaces
+#networks:
+#  - {name: corp, vlan_id: 10, routeable_ip: 192.168.10.2, mask: 24}
+#  - {name: voice, vlan_id: 20, routeable_ip: 192.168.20.2, mask: 24}
+## The following list help to create port Profies listing groups of ports, remove if not needed.
+#port_profiles:
+#  data_ports:
+#    mode: access
+#    vlans:
+#      - 10
+#    interfaces:
+#      - ge-0/0/0
+#      - ge-0/0/1
+#      - ge-0/0/2
+#      - ge-0/0/3
+#  ap_ports:
+#    mode: trunk
+#    vlans:
+#      - 10
+#      - 20
+#    interfaces:
+#      - ge-0/0/10
+## The following list help to create Aggregate ports, each aeX will have multiple interfaces, remove if not needed.
+## Interfaces in member list should not be configured in any other list
+#aggregate_ports:
+#  ae0:
+#    mode: trunk
+#    vlans:
+#      - 10
+#      - 20
+#    member_interfaces:
+#      - ge-0/0/9
+#      - ge-0/0/8
+
+system {
+    host-name {{ hostname }};
+    domain-name {{ domain_name }};
+    time-zone {{ time_zone }};
+    authentication-order password;
+    name-server {
+        {%- for name_server in name_servers %}
+        {{ name_server }};
+        {%- endfor %};
+    }
+    {% if radius is defined %}
+    radius-server {
+        {{ radius.server }} {
+            port {{ radius.port }};
+            accounting-port {{ radius.acc_port }};
+            secret {{ radius.secret }}; ## SECRET-DATA
+            source-address {{ radius.source_ip }};
+        }
+    }
+    authentication-order radius;
+    {%- endif %}
+    services {
+        ssh;
+        {%- if web_management %}
+        web-management {
+            https {
+                system-generated-certificate;
+            }
+        }
+        {%- endif %}
+        dhcp {
+            traceoptions {
+                file dhcp_logfile;
+                level all;
+                flag all;
+            }
+        }
+    }
+    syslog {
+        archive size 100k files 3;
+        user * {
+            any emergency;
+        }
+        file messages {
+            any critical;
+            authorization info;
+        }
+        file interactive-commands {
+            interactive-commands error;
+        }
+    }
+    max-configurations-on-flash 15;
+    license {
+        autoupdate {
+            url https://ae1.juniper.net/junos/key_retrieval;
+        }
+    }
+    processes {
+        general-authentication-service {
+            traceoptions {
+                flag all;
+            }
+        }
+    }
+    ntp {
+        {% for ntp_server in ntp_servers %}
+        server {{ ntp_server }};
+        {%- endfor %}
+    }
+}
+chassis {
+    {%- if not mgmt_port_used %}
+    alarm {
+        management-ethernet {
+            link-down ignore;
+        }
+    }
+    {%- endif %}
+    {%- if aggregate_ports is defined %}
+    aggregated-devices {
+        ethernet {
+            device-count {{ aggregate_ports|count }};
+        }
+    }
+    {%- endif %}
+    auto-image-upgrade;
+}
+interfaces {
+    {%- if port_profiles is defined %}
+        {%- for profile in port_profiles %}
+    interface-range {{ profile }} {
+        {%- for interface in port_profiles[profile].interfaces %}
+        member {{ interface }};
+        {%- endfor %}
+        unit 0 {
+            family ethernet-switching {
+                interface-mode {{ port_profiles[profile].mode }};
+                vlan {
+                    {%- for vlan in port_profiles[profile].vlans %}
+                    members {{ vlan }};
+                    {%- endfor %}
+                }
+            }
+        }
+    }
+        {%- endfor %}
+    {%- endif %}
+    {%- if aggregate_ports is defined %}
+        {%- for interface in aggregate_ports %}
+    {{ interface }} {
+        aggregated-ether-options {
+            lacp {
+                active;
+                periodic slow;
+            }
+        }
+        unit 0 {
+            family ethernet-switching {
+                interface-mode {{ aggregate_ports[interface].mode }};
+                vlan {
+                    {%- for vlan in aggregate_ports[interface].vlans %}
+                    members {{ vlan }};
+                    {%- endfor %}
+                }
+            }
+        }
+    }
+            {%- for member_interface in aggregate_ports[interface].member_interfaces %}
+    {{ member_interface }} {
+        ether-options {
+            802.3ad {{ interface }}
+        }
+    }
+            {%- endfor %}
+        {%- endfor %}
+    {%- endif %}
+    irb {
+        {%- for network in networks %}
+            {%- if network.routeable_ip is defined %}
+        unit {{ network.vlan_id }} {
+            family inet {
+                address {{ network.routeable_ip}}/{{network.mask}};
+            }
+        }
+            {%- endif %}
+        {%- endfor %}
+    }
+}
+routing-options {
+    static {
+        route 0.0.0.0/0 next-hop {{ default_gateway }};
+    }
+}
+protocols {
+    igmp-snooping {
+        vlan all;
+    }
+    rstp;
+    lldp {
+        interface all;
+    }
+    lldp-med {
+        interface all;
+    }
+}
+vlans {
+    {%- for network in networks %}
+    {{ network.name}} {
+        vlan-id {{ network.vlan_id }};
+        l3-interface irb.{{ network.vlan_id}};
+    }
+    {%- endfor %}
+}
