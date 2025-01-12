@@ -1,0 +1,288 @@
+{#- YAML Dictionary Matching #}
+{%- set system = System[0] %}
+{%- set zones = Zones %}
+{%- set interfaces = Interfaces %}
+{%- set objects = Objects %}
+{%- set applications = Applications %}
+{%- set policies = Policies %}
+{%- set nat_rules = NAT %}
+{#- Defining Juniper Build in Services and Protocols #}
+{%- set protocols = ["all", "bfd", "bgp", "dvmrp", "igmp", "ldp", "msdp", "nhrp", "ospf", "ospf3", "pgm", "pim", "rip", "ripng", "router-discovery", "rsvp", "sap", "vrrp"] %}
+{%- set system_services = ["all", "any-service", "bootp", "dhcp", "dhcpv6", "dns", "finger", "ftp", "http", "https", "ident-reset", "ike", "lsping", "netconf", "ntp", "ping", "r2cp", "reverse-ssh", "reverse-telnet", "rlogin", "rpm", "rsh", "snmp", "snmp-trap", "ssh", "telnet", "tftp", "traceroute", "xnm-clear-text", "xnm-ssl"] %}
+
+{# System Settings #}
+{%- if System[1] %}
+{#- {%- if system['Cluster Role'] == 'Primary' %} #}
+set groups node0 system host-name {{ system['Firewall Name'] }}
+{#- {%- elif System[1]['Cluster Role'] == 'Secondary' %} #}
+set groups node1 system host-name {{ System[1]['Firewall Name'] }}
+set apply-groups "${node}"
+set chassis cluster redundancy-group 1 node 0 priority 100
+set chassis cluster redundancy-group 1 node 1 priority 1
+{%- else %}
+set system host-name {{ system['Firewall Name'] }}
+{%- endif %}
+set system services ssh
+set system syslog user * any emergency
+{%- if system['Syslog Server'] is defined %}
+set system syslog host {{ system['Syslog Server'] }} any any
+{%- endif %}
+set system syslog file messages any notice
+set system syslog file messages authorization info
+set system syslog file interactive-commands interactive-commands info
+set system syslog file policy-session match RT_FLOW
+set system syslog file policy-session archive size 1000k world-readable
+set system syslog file policy-session structured-data
+set system max-configurations-on-flash 15
+set system license autoupdate url https://ae1.juniper.net/junos/key_retrieval
+{#- Split the comma-separated list, strip whitespace #}
+{%- set dns_servers = system['DNS Servers'].split(',') | map('trim') %}
+{%- for dns_server in dns_servers %}
+set system name-server {{ dns_server }}
+{%- endfor %}
+set system domain-name {{ system['Domain Name'] }}
+{#- Split the comma-separated list, strip whitespace, and convert each item to lowercase #}
+{%- set ntp_servers = system['NTP Servers'].split(',') | map('trim') | map('lower') %}
+{%- for ntp_server in ntp_servers %}
+set system ntp server {{ ntp_server }}
+{%- endfor %}
+set system time-zone {{ system['Time-Zone'] }}
+
+{# Configure login configuration #}
+{%- if system['Authentication Method'] == 'RADIUS' %}
+set system radius-server {{ system['Authentication Server IP'] }} port {{ system['Authentication Server Port'] }}
+set system authentication-order [ radius password ]
+set system login user remote full-name "default remote access user template"
+set system login user remote class {{ system['Default Remote User Class'] }}
+{%- elif system['Authentication Method'] == 'TACACS' %}
+set system tacplus-server {{ system['Authentication Server IP'] }} 
+set system authentication-order [tacplus password]
+set system login user remote class {{ system['Default Remote User Class'] }}
+{%- else %}
+set system authentication-order password
+{%- endif %}
+
+{# Set some securiy best practices #}
+set security alg dns disable
+set security flow tcp-mss all-tcp mss 1350
+set security flow strict-syn-check
+set security forwarding-options family inet6 mode flow-based
+set security application-tracking
+set security screen ids-option untrust-screen icmp ip-sweep threshold 5000
+set security screen ids-option untrust-screen icmp fragment
+set security screen ids-option untrust-screen icmp large
+set security screen ids-option untrust-screen icmp flood threshold 1000
+set security screen ids-option untrust-screen icmp ping-death
+set security screen ids-option untrust-screen ip source-route-option
+set security screen ids-option untrust-screen ip record-route-option
+set security screen ids-option untrust-screen ip timestamp-option
+set security screen ids-option untrust-screen ip security-option
+set security screen ids-option untrust-screen ip stream-option
+set security screen ids-option untrust-screen ip spoofing
+set security screen ids-option untrust-screen ip unknown-protocol
+set security screen ids-option untrust-screen ip block-frag
+set security screen ids-option untrust-screen ip tear-drop
+set security screen ids-option untrust-screen ip bad-option
+set security screen ids-option untrust-screen tcp syn-flood alarm-threshold 1024
+set security screen ids-option untrust-screen tcp syn-flood attack-threshold 200
+set security screen ids-option untrust-screen tcp syn-flood source-threshold 1024
+set security screen ids-option untrust-screen tcp syn-flood destination-threshold 2048
+set security screen ids-option untrust-screen tcp syn-flood timeout 20
+set security screen ids-option untrust-screen tcp syn-fin
+set security screen ids-option untrust-screen tcp syn-frag
+set security screen ids-option untrust-screen tcp fin-no-ack
+set security screen ids-option untrust-screen tcp tcp-no-flag
+set security screen ids-option untrust-screen tcp port-scan threshold 5000
+set security screen ids-option untrust-screen tcp syn-ack-ack-proxy threshold 512
+set security screen ids-option untrust-screen tcp land
+set security screen ids-option untrust-screen tcp winnuke
+set security screen ids-option untrust-screen udp flood threshold 1000
+set security screen ids-option untrust-screen udp udp-sweep
+
+{# SNMP Configuration #}
+{%- if system['SNMP Community'] is defined %}
+set snmp community {{ system['SNMP Community'] }} authorization read-only
+set snmp community {{ system['SNMP Community'] }} clients [ {{ system['SNMP Clients'].replace(', ', ' ') }} ]
+set snmp contact "{{ system['Site Contact'] }}"
+set snmp location "{{ system['Site Address'] }}"
+{%- endif %}
+
+{# Security Zones #}
+{%- for zone in zones %}
+set security zones security-zone {{ zone['Name'] }} 
+{%- if zone['Screen'] is defined %} 
+set security zones security-zone {{ zone['Name'] }} screen untrust-screen 
+{%- endif %}
+{%- if zone['Services'] is defined %}
+{#- Split the comma-separated list, strip whitespace, and convert each item to lowercase #}
+{%- set services = zone['Services'].split(',') | map('trim') | map('lower') %}
+{#- Separate services by type #}
+{%- for service in services %}
+    {%- if service in system_services %}
+set security zones security-zone {{ zone['Name'] }} host-inbound-traffic system-services {{ service }}
+    {%- elif service in protocols %}
+set security zones security-zone {{ zone['Name'] }} host-inbound-traffic protocols {{ service }}
+    {%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- for interface in interfaces if interface['Zone'] == zone['Name'] %}
+set security zones security-zone {{ zone['Name'] }} interfaces {{ interface['Interface'] }}.{{ interface['Logical Unit'] }}
+{%- if interface['Services'] is defined %}
+{#- Split the comma-separated list, strip whitespace, and convert each item to lowercase #}
+{%- set services = interface['Services'].split(',') | map('trim') | map('lower') %}
+{#- Separate services by type #}
+{%- for service in services %}
+    {%- if service in system_services %}
+set security zones security-zone {{ zone['Name'] }} interfaces {{ interface['Interface'] }}.{{ interface['Logical Unit'] }} host-inbound-traffic system-services {{ service }}
+    {%- elif service in protocols %}
+set security zones security-zone {{ zone['Name'] }} interfaces {{ interface['Interface'] }}.{{ interface['Logical Unit'] }} host-inbound-traffic protocols {{ service }}
+    {%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{%- endfor %}
+
+{# Security Policies #}
+{%- for policy in policies %}
+  {%- for source in policy['Source Address'] %}
+set security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To Zone'] }} policy {{ policy['Name'] }} match source-address {{ source }}
+  {%- endfor %}
+  {%- for destination in policy['Destination Address'] %}
+set security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To Zone'] }} policy {{ policy['Name'] }} match destination-address {{ destination }}
+  {%- endfor %}
+  {%- for app in policy['Application'] %}
+set security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To Zone'] }} policy {{ policy['Name'] }} match application {{ app }}
+  {%- endfor %}
+set security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To Zone'] }} policy {{ policy['Name'] }} then {{ policy['Action'] }}
+  {%- if policy['Log'] is defined %}
+set security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To Zone'] }} policy {{ policy['Name'] }} then log session-init
+set security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To Zone'] }} policy {{ policy['Name'] }} then log session-close
+  {%- endif %}
+  {%- if policy['Count'] is defined %}
+set security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To Zone'] }} policy {{ policy['Name'] }} then count
+  {%- endif %}
+  {%- if policy['Enabled'] == FALSE %}
+deactivate security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To Zone'] }} policy {{ policy['Name'] }}
+  {%- endif %}
+{%- endfor %}
+
+{# NAT Configuration #}
+{%- for nat in nat_rules %}
+{%- if nat['Type'] == "Source" %}
+set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} from zone {{ nat['From Zone'] }}
+set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} to zone {{ nat['To Zone'] }}
+set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} match source-address {{ nat['Address'] }}
+{%- if nat['Translated Address'] == "Interface" %}
+set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then source-nat interface
+{%- else %}
+set security nat source rule-set set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then source-nat pool {{ nat['Name'] }}-pool
+set security nat source pool {{ nat['Name'] }}-pool address {{ nat['Translated Address'] }}
+{%- endif %}
+{%- if nat['Enabled'] == FALSE %}
+deactivate security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }}
+{%- endif %}
+{#- Destination NAT Configuration #}
+{%- elif nat['Type'] == "Destination" %}
+set security nat destination pool {{ nat['Name'] }}-pool address {{ nat['Translated Address'] }}
+{%- if nat['Translated Port'] is defined %}
+set security nat destination pool {{ nat['Name'] }}-pool address port {{ nat['Translated Port'] }}
+{%- endif %}
+set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} from zone {{ nat['From Zone'] }}
+set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} match destination-address {{ nat['Address'] }}
+set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then destination-nat pool {{ nat['Name'] }}-pool
+{%- if nat['Translated Port'] is defined %}
+set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then destination-port {{ nat['Translated Port'] }}
+{%- endif %}
+{%- if nat['Enabled'] == FALSE %}
+deactivate security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }}
+{%- endif %}
+{#- Static NAT Configuration #}
+{%- elif nat['Type'] == "Static" %}
+set security nat static rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} from zone {{ nat['From Zone'] }}
+set security nat static rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} match destination-address {{ nat['Address'] }}
+set security nat static rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then static-nat prefix {{ nat['Translated Address'] }}
+{%- if nat['Enabled'] == FALSE %}
+deactivate security nat static rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }}
+{%- endif %}
+{%- endif %}
+{%- endfor %}
+
+{# Interface Configuration #}
+{%- for interface in interfaces %}
+{%- if interface['Description'] is defined %}
+set interfaces {{ interface['Interface'] }} {%- if  interface['Logical Unit'] is defined %} unit {{ interface['Logical Unit'] }} {%- endif %} description "{{ interface['Description'] }}"
+{%- endif %}
+{%- if interface['Family'] is defined and interface['Family'].startswith("inet") and interface['Logical Unit'] > 0 %}
+set interfaces {{ interface['Interface'] }} flexible-vlan-tagging
+set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} vlan-id {{ interface['Logical Unit'] }}
+{%- endif %}
+{%- if interface['Family'] == 'iso' or interface['Family'] == 'mpls' %}
+set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family {{ interface['Family'] }}
+{%- elif interface['Family'] == 'ethernet-switching' %} 
+set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family ethernet-switching vlan members {{ interface['Address/CIDR/VLANs'] }}
+{%- elif interface['Family'] == 'agg-member' %} 
+set interfaces {{ interface['Interface'] }} gigether-options redundant-parent {{ interface['Address/CIDR/VLANs'] }}
+set chassis cluster redundancy-group 1 interface-monitor {{ interface['Interface'] }} weight 255
+{%- elif interface['Family'] == 'bridge' %} 
+set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family bridge vlan-id {{ interface['Address/CIDR/VLANs'] }}
+{%- elif interface['Address/CIDR/VLANs'] is not defined %}
+{%- elif interface['Address/CIDR/VLANs'] == 'DHCP' %}
+set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family {{ interface['Family'] }} dhcp
+{%- else %}
+set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family {{ interface['Family'] }} address {{ interface['Address/CIDR/VLANs'] }}
+{%- endif %}
+{%- if interface['Type'] == 'aggregate' %}
+set interfaces {{ interface['Interface'] }} redundant-ether-options redundancy-group 1
+{%- endif %}
+{%- endfor %}
+
+{# Calculate and configure Reth Interfaces #}
+{%- set reth_interfaces = [] %}
+{%- set reth_numbers = [] %}
+{#- Creates a list of all unique interfaces #}
+{%- set unique_interfaces = interfaces|map(attribute='Interface')|unique|list %}
+{#- Filters and Creates a List of Unique Reth interfaces #}
+{%- for unique_interface in unique_interfaces %}  
+  {%- if unique_interface.startswith('reth') %} 
+    {%- set _ = reth_interfaces.append(unique_interface) %}
+  {%- endif %}
+{%- endfor %}
+{#- Takes Action to configure reth interfaces if exist #}
+{%- if reth_interfaces|count > 0 %}
+  {%- for reth_interface in reth_interfaces %}
+set interfaces {{ reth_interface }} redundant-ether-options redundancy-group 1
+    {#- Takes each reth interface name (removes 'reth') and creates a list of numbers #}
+    {%- set _ = reth_numbers.append(reth_interface.replace("reth", "")|int) %}
+  {%- endfor %}
+  {#- Uses the highest reth number to create the reth-count for SRX #}
+set chassis cluster reth-count {{ reth_numbers|max + 1 }}
+{%- endif %}
+
+{# Applications #}
+{%- for app in applications %}
+set applications application {{ app['Name'] }} protocol {{ app['Protocol'] }}
+set applications application {{ app['Name'] }} destination-port {{ app['Port'] }}
+{%- if app['ALG'] is defined %} 
+set applications application {{ app['Name'] }} application-protocol {{ app['ALG']}}
+{%- endif %}
+{%- endfor %}
+
+{# Address Book #}
+{%- for zone in zones %}
+set security address-book {{ zone['Name'] }} attach zone {{ zone['Name'] }} 
+{%- endfor %}
+{%- for object in objects if object['CIDR'] is defined %}
+set security address-book {{ object['Zone'] }} address {{ object['Name'] }} {{ object['CIDR'] }}
+{%- if object['memberOf'] is defined %}
+set security address-book {{ object['Zone'] }} address-set {{ object['memberOf'] }} address {{ object['Name'] }}
+{%- endif %}
+{%- endfor %}
+
+{# Routing Instance Creation #}
+{%- for zone in zones if zone['vrf'] != 'default' %}
+set routing-instances {{ zone['vrf'] }} instance-type virtual-router
+  {#- Interfaces associated with the current zone #}
+  {%- for interface in interfaces if interface['Zone'] == zone['Name'] %}
+set routing-instances {{ zone['vrf'] }} interface {{ interface['Interface'] }}.{{ interface['Logical Unit'] }}
+  {%- endfor %}
+{%- endfor %}
