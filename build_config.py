@@ -32,7 +32,7 @@ if __name__ == "__main__":
     with open(args.template) as fh:
         jinja2_template = jinja2.Template(fh.read())
 
-    configuration = jinja2_template.render(yaml_vars['variables'])
+    configuration = jinja2_template.render(yaml_vars)
 
     if args.out :
         with open(args.out, "x") as out:

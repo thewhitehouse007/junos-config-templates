@@ -1,109 +1,107 @@
 ## ** variables.yml Example **
-#variables:
-#  networks:
-#    WAN1:
-#      # List of Local Protected Subnets
-#      local_subnets:
-#      - {name: corp, subnet: 192.168.0.0, mask: 24}
-#      - {name: voice, subnet: 192.168.1.0, mask: 24}
-#      # VPN External Interface
-#      ext_interface: ge-0/0/0
-#      # VPN External Interface
-#      ext_address: 10.1.1.10
-#      # VPN External Interface Zone
-#      ext_int_zone: untrust
-#      # Phase 1 IKE Settings
-#      phase1:
-#        # DH Group
-#        dh_group: group20
-#        # Encryption Algorithm
-#        encrypt_alg: aes-256-gcm
-#        # Lifetime in Seconds
-#        lifetime: 28800
-#        # VPN PreShared-Key (IKE)
-#        vpn_psk: xxxyyyzzz
-#        # Dead Peer Detection Enabled (Comment to Disable)
-#        dpd: TRUE
-#        # IKE Version 2 only enabled
-#        version_2: TRUE
-#      phase2:
-#        # Perfect Forward Secrecy, DH Group (Comment to Disable)
-#        pfs: group20
-#        # Encryption Algorithm
-#        encrypt_alg: aes-256-gcm
-#        # Lifetime in Seconds
-#        lifetime: 3600
-#      remote_sites:
-#        SITE1:
-#          # The Remote Gateway/Endpoint Public IP Address
-#          remote_gw_address: 10.1.1.11
-#          # NAT Traversal Disabled (Comment to Enable)
-#          #no_nat_t: TRUE
-#          # Set the logical interface ID for st0 tunnel interface
-#          logical_int: 1
-#          # Set the Tunnel Interface CIDR
-#          tunnel_int_ip: 192.168.99.1/31
-#          neighbour_ip: 192.168.99.2
-#          # List of Remote Protected Subnets
-#          remote_subnets: 
-#          - {name: corp, subnet: 192.168.10.0, mask: 24}
-#          - {name: voice, subnet: 192.168.11.0, mask: 24}
-#        SITE2:
-#          remote_gw_address: 10.1.1.12
-#          no_nat_t: TRUE
-#          logical_int: 2
-#          tunnel_int_ip: 192.168.99.3/31
-#          neighbour_ip: 192.168.99.4
-#          remote_subnets: 
-#          - {name: corp, subnet: 192.168.20.0, mask: 24}
-#          - {name: voice, subnet: 192.168.21.0, mask: 24}
-#      options:
-#        # Instruct the Jinja Templte to include basic security policies... (Comment to Disable)
-#        security_policies: TRUE
-#        # Instruct the template to allow intra-traffic between remote networks, such as in Hub-Spoke model. (Comment to Disable)
-#        hub_spoke: TRUE
-#        routing_protocol: 
-#          # Select routing protocol to be configured, (this already assumes protocol is configured) adds st0 interface and routes (Choose: static or ospf)
-#          type: ospf
-#          area: 0
-#          # Authentication password for routing protocol (Comment to disable)
-#          authentication_hash: Juniper123
-#    CUST1:
-#      # List of Local Protected Subnets, to share with partner
-#      local_subnets:
-#      - {name: server1, subnet: 192.168.2.51, mask: 32}
-#      - {name: server2, subnet: 192.168.2.52, mask: 32}
-#      ext_interface: ge-0/0/0
-#      ext_address: 10.1.1.10
-#      ext_int_zone: untrust
-#      phase1:
-#        dh_group: group20
-#        encrypt_alg: aes-256-gcm
-#        lifetime: 28800
-#        vpn_psk: xxxyyyzzz
-#        dpd: TRUE
-#        version_2: TRUE
-#      phase2:
-#        pfs: group20
-#        encrypt_alg: aes-256-gcm
-#        lifetime: 3600
-#      remote_sites:
-#        CUSTSITE1:
-#          remote_gw_address: 10.1.1.21
-#          #no_nat_t: TRUE
-#          logical_int: 101
-#          tunnel_int_ip: 192.168.99.101/30
-#          neighbour_ip: 192.168.99.102
-#          remote_subnets: 
-#          - {name: server1, subnet: 172.16.100.10, mask: 32}
-#          - {name: server2, subnet: 172.16.101.11, mask: 32}
-#      options:
-#        security_policies: TRUE
-#        hub_spoke: FALSE
-#        routing_protocol: 
-#          type: bgp
-#          peer_as: 72
-#
+#networks:
+#  WAN1:
+#    # List of Local Protected Subnets
+#    local_subnets:
+#    - {name: corp, subnet: 192.168.0.0, mask: 24}
+#    - {name: voice, subnet: 192.168.1.0, mask: 24}
+#    # VPN External Interface
+#    ext_interface: ge-0/0/0
+#    # VPN External Interface
+#    ext_address: 10.1.1.10
+#    # VPN External Interface Zone
+#    ext_int_zone: untrust
+#    # Phase 1 IKE Settings
+#    phase1:
+#      # DH Group
+#      dh_group: group20
+#      # Encryption Algorithm
+#      encrypt_alg: aes-256-gcm
+#      # Lifetime in Seconds
+#      lifetime: 28800
+#      # VPN PreShared-Key (IKE)
+#      vpn_psk: xxxyyyzzz
+#      # Dead Peer Detection Enabled (Comment to Disable)
+#      dpd: TRUE
+#      # IKE Version 2 only enabled
+#      version_2: TRUE
+#    phase2:
+#      # Perfect Forward Secrecy, DH Group (Comment to Disable)
+#      pfs: group20
+#      # Encryption Algorithm
+#      encrypt_alg: aes-256-gcm
+#      # Lifetime in Seconds
+#      lifetime: 3600
+#    remote_sites:
+#      SITE1:
+#        # The Remote Gateway/Endpoint Public IP Address
+#        remote_gw_address: 10.1.1.11
+#        # NAT Traversal Disabled (Comment to Enable)
+#        #no_nat_t: TRUE
+#        # Set the logical interface ID for st0 tunnel interface
+#        logical_int: 1
+#        # Set the Tunnel Interface CIDR
+#        tunnel_int_ip: 192.168.99.1/31
+#        neighbour_ip: 192.168.99.2
+#        # List of Remote Protected Subnets
+#        remote_subnets: 
+#        - {name: corp, subnet: 192.168.10.0, mask: 24}
+#        - {name: voice, subnet: 192.168.11.0, mask: 24}
+#      SITE2:
+#        remote_gw_address: 10.1.1.12
+#        no_nat_t: TRUE
+#        logical_int: 2
+#        tunnel_int_ip: 192.168.99.3/31
+#        neighbour_ip: 192.168.99.4
+#        remote_subnets: 
+#        - {name: corp, subnet: 192.168.20.0, mask: 24}
+#        - {name: voice, subnet: 192.168.21.0, mask: 24}
+#    options:
+#      # Instruct the Jinja Templte to include basic security policies... (Comment to Disable)
+#      security_policies: TRUE
+#      # Instruct the template to allow intra-traffic between remote networks, such as in Hub-Spoke model. (Comment to Disable)
+#      hub_spoke: TRUE
+#      routing_protocol: 
+#        # Select routing protocol to be configured, (this already assumes protocol is configured) adds st0 interface and routes (Choose: static or ospf)
+#        type: ospf
+#        area: 0
+#        # Authentication password for routing protocol (Comment to disable)
+#        authentication_hash: Juniper123
+#  CUST1:
+#    # List of Local Protected Subnets, to share with partner
+#    local_subnets:
+#    - {name: server1, subnet: 192.168.2.51, mask: 32}
+#    - {name: server2, subnet: 192.168.2.52, mask: 32}
+#    ext_interface: ge-0/0/0
+#    ext_address: 10.1.1.10
+#    ext_int_zone: untrust
+#    phase1:
+#      dh_group: group20
+#      encrypt_alg: aes-256-gcm
+#      lifetime: 28800
+#      vpn_psk: xxxyyyzzz
+#      dpd: TRUE
+#      version_2: TRUE
+#    phase2:
+#      pfs: group20
+#      encrypt_alg: aes-256-gcm
+#      lifetime: 3600
+#    remote_sites:
+#      CUSTSITE1:
+#        remote_gw_address: 10.1.1.21
+#        #no_nat_t: TRUE
+#        logical_int: 101
+#        tunnel_int_ip: 192.168.99.101/30
+#        neighbour_ip: 192.168.99.102
+#        remote_subnets: 
+#        - {name: server1, subnet: 172.16.100.10, mask: 32}
+#        - {name: server2, subnet: 172.16.101.11, mask: 32}
+#    options:
+#      security_policies: TRUE
+#      hub_spoke: FALSE
+#      routing_protocol: 
+#        type: bgp
+#        peer_as: 72
 
 groups { {% for network in networks %}
     replace: ipsec-{{ network }} {

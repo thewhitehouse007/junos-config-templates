@@ -1,32 +1,29 @@
-
 ## ** variables.yml Example **
-#variables:
-#  # OPtion: Define a management Interface to protect OOB (in addition to lo0)
-#  mgmt_interface: vme.0
-#  # List of protocols used by the system/to allow
-#  dhcp: TRUE
-#  bgp: TRUE
-#  ntp: TRUE
-#  dns: TRUE
-#  radius: TRUE
-#  tacacs: TRUE
-#  snmp: TRUE
-#  icmp: TRUE
-#  ssh: TRUE
-#  netconf: TRUE
-#  https: FALSE
-#  # Enable this rule to allow return traffic (specific use case)
-#  permit_estblished: FALSE
-#  # Set if you are using a legacy system that does not support Policers or Counts
-#  legacy_support: FALSE
-#  # Set to overide firewall filter count or policer features
-#  disable_counts: FALSE
-#  disable_policer: FALSE
-#  management_ips:
-#  # List of Management Client IP Addresses
-#  - {subnet: 192.168.0.0, mask: 24}
-#  - {subnet: 192.168.1.0, mask: 24}
-#
+## OPtion: Define a management Interface to protect OOB (in addition to lo0)
+#mgmt_interface: vme.0
+## List of protocols used by the system/to allow
+#dhcp: TRUE
+#bgp: TRUE
+#ntp: TRUE
+#dns: TRUE
+#radius: TRUE
+#tacacs: TRUE
+#snmp: TRUE
+#icmp: TRUE
+#ssh: TRUE
+#netconf: TRUE
+#https: FALSE
+## Enable this rule to allow return traffic (specific use case)
+#permit_established: FALSE
+## Set if you are using a legacy system that does not support Policers or Counts
+#legacy_support: FALSE
+## Set to overide firewall filter count or policer features
+#disable_counts: FALSE
+#disable_policer: FALSE
+#management_ips:
+## List of Management Client IP Addresses
+#- {subnet: 192.168.0.0, mask: 24}
+#- {subnet: 192.168.1.0, mask: 24}
 
 groups {
     replace: filter_protect_re {

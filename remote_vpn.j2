@@ -1,36 +1,35 @@
 #
 ## ** variables.yml Example **
-#variables:
-#  # VPN External Interface
-#  ext_int: ge-0/0/0
-#  # VPN External Interface Zone
-#  ext_zone: untrust
-#  # VPN DNS Hostname
-#  dns_hn: vpn.domain.com
-#  # VPN PreShared-Key (IKE)
-#  vpn_psk: xxxyyyzzz
-#  local_subnets:
-#  # List of Local Protected Subnets
-#  - {name: corp, subnet: 192.168.0.0, mask: 24}
-#  - {name: voice, subnet: 192.168.1.0, mask: 24}
-#  vpn_accounts:
-#  # List of VPN Users and Passwords
-#  - {user: user1, pass: xxxzzz}
-#  - {user: user2, pass: yyyaaa}
-#  dhcp_pool:
-#    # VPN Client DHCP Pool
-#    subnet: 192.168.99.0
-#    # VPN Client DHCP Pool Subnet Mask
-#    mask: 24
-#    # VPN Client DHCP Pool Start IP
-#    low: 192.168.99.10
-#    # VPN Client DHCP Pool End IP
-#    high: 192.168.99.99
-#    # VPN Client Primary DNS Server
-#    dns_pri: 8.8.8.8
-#    # VPN Client Secondary DNS Server
-#    dns_sec: 1.1.1.1
-# 
+## VPN External Interface
+#ext_int: ge-0/0/0
+## VPN External Interface Zone
+#ext_zone: untrust
+## VPN DNS Hostname
+#dns_hn: vpn.domain.com
+## VPN PreShared-Key (IKE)
+#vpn_psk: xxxyyyzzz
+#local_subnets:
+## List of Local Protected Subnets
+#- {name: corp, subnet: 192.168.0.0, mask: 24}
+#- {name: voice, subnet: 192.168.1.0, mask: 24}
+#vpn_accounts:
+## List of VPN Users and Passwords
+#- {user: user1, pass: xxxzzz}
+#- {user: user2, pass: yyyaaa}
+#dhcp_pool:
+#  # VPN Client DHCP Pool
+#  subnet: 192.168.99.0
+#  # VPN Client DHCP Pool Subnet Mask
+#  mask: 24
+#  # VPN Client DHCP Pool Start IP
+#  low: 192.168.99.10
+#  # VPN Client DHCP Pool End IP
+#  high: 192.168.99.99
+#  # VPN Client Primary DNS Server
+#  dns_pri: 8.8.8.8
+#  # VPN Client Secondary DNS Server
+#  dns_sec: 1.1.1.1
+
 groups {
     replace: remote-vpn {
         system {
