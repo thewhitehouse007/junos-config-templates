@@ -54,7 +54,7 @@ set system radius-server {{ system['Authentication Server IP'] }} port {{ system
 set system authentication-order [ radius password ]
 set system login user remote full-name "default remote access user template"
 set system login user remote class {{ system['Default Remote User Class'] }}
-{%- elif system['Authentication Method'] == 'TACACS' %}
+{%- elif system['Authentication Method'] == 'TACACS+' %}
 set system tacplus-server {{ system['Authentication Server IP'] }} 
 set system authentication-order [tacplus password]
 set system login user remote class {{ system['Default Remote User Class'] }}
@@ -102,7 +102,11 @@ set security screen ids-option untrust-screen udp udp-sweep
 {# SNMP Configuration #}
 {%- if system['SNMP Community'] is defined %}
 set snmp community {{ system['SNMP Community'] }} authorization read-only
-set snmp community {{ system['SNMP Community'] }} clients [ {{ system['SNMP Clients'].replace(', ', ' ') }} ]
+{#- Split the comma-separated list, strip whitespace #}
+{%- set snmp_clients = system['SNMP Clients'].split(',') | map('trim') %}
+{%- for snmp_client in snmp_clients %}
+set snmp community {{ system['SNMP Community'] }} clients {{ snmp_client }}
+{%- endfor %}
 set snmp contact "{{ system['Site Contact'] }}"
 set snmp location "{{ system['Site Address'] }}"
 {%- endif %}
