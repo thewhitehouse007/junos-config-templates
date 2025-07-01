@@ -67,7 +67,7 @@ set system authentication-order password
 {# Set some securiy best practices #}
 set security alg dns disable
 set security flow tcp-mss all-tcp mss 1350
-set security flow strict-syn-check
+set security flow tcp-session strict-syn-check
 set security forwarding-options family inet6 mode flow-based
 set security application-tracking
 set security screen ids-option untrust-screen icmp ip-sweep threshold 5000
@@ -181,8 +181,8 @@ set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} 
 {%- if nat['Translated Address'] == "Interface" %}
 set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then source-nat interface
 {%- else %}
-set security nat source rule-set set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then source-nat pool {{ nat['Name'] }}-pool
 set security nat source pool {{ nat['Name'] }}-pool address {{ nat['Translated Address'] }}
+set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then source-nat pool {{ nat['Name'] }}-pool
 {%- endif %}
 {%- if nat['Enabled'] == FALSE %}
 deactivate security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }}
