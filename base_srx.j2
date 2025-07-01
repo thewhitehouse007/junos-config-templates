@@ -51,11 +51,13 @@ set system time-zone {{ system['Time-Zone'] }}
 {# Configure login configuration #}
 {%- if system['Authentication Method'] == 'RADIUS' %}
 set system radius-server {{ system['Authentication Server IP'] }} port {{ system['Authentication Server Port'] }}
+set system radius-server {{ system['Authentication Server IP'] }} secret {{ system['Authentication Server Key'] }}
 set system authentication-order [ radius password ]
 set system login user remote full-name "default remote access user template"
 set system login user remote class {{ system['Default Remote User Class'] }}
 {%- elif system['Authentication Method'] == 'TACACS+' %}
-set system tacplus-server {{ system['Authentication Server IP'] }} 
+set system tacplus-server {{ system['Authentication Server IP'] }} port {{ system['Authentication Server Port']}}
+set system tacplus-server {{ system['Authentication Server IP'] }} secret {{ system['Authentication Server Key']}}
 set system authentication-order [tacplus password]
 set system login user remote class {{ system['Default Remote User Class'] }}
 {%- else %}
