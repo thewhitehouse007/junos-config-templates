@@ -113,6 +113,15 @@ set snmp contact "{{ system['Site Contact'] }}"
 set snmp location "{{ system['Site Address'] }}"
 {%- endif %}
 
+{# jFlow Configuration #}
+{%- if system['Flow Targets'] is defined %}
+set services flow-monitoring version9 template ipv4-flows ipv4-template
+set forwarding-options sampling instance instance1 input rate 100
+set forwarding-options sampling instance instance1 input run-length 0
+set forwarding-options sampling instance instance1 family inet output flow-server {{ system['Flow Targets'] }} port 9996
+set forwarding-options sampling instance instance1 family inet output flow-server {{ system['Flow Targets'] }} version9 template ipv4-flows
+{%- endif %}
+
 {# Security Zones #}
 {%- for zone in zones %}
 set security zones security-zone {{ zone['Name'] }} 
