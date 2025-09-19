@@ -236,9 +236,6 @@ set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }}
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family {{ interface['Family'] }}
   {%- elif interface['Family'] == 'ethernet-switching' %} 
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family ethernet-switching vlan members {{ interface['Address/CIDR/VLANs'] }}
-  {%- elif interface['Family'] == 'agg-member' %} 
-set interfaces {{ interface['Interface'] }} gigether-options redundant-parent {{ interface['Address/CIDR/VLANs'] }}
-set chassis cluster redundancy-group 1 interface-monitor {{ interface['Interface'] }} weight 255
   {%- elif interface['Family'] == 'bridge' %} 
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family bridge vlan-id {{ interface['Address/CIDR/VLANs'] }}
   {%- elif interface['Address/CIDR/VLANs'] is not defined %}
@@ -248,8 +245,12 @@ set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }}
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family {{ interface['Family'] }} address {{ interface['Address/CIDR/VLANs'] }}
   {%- endif %}
 {%- endif %}
+{# Redundant (RETH) Interface Configuration #}
 {%- if interface['Type'] == 'aggregate' %}
 set interfaces {{ interface['Interface'] }} redundant-ether-options redundancy-group 1
+{%- if interface['Family'] == 'agg-member' %}
+set interfaces {{ interface['Interface'] }} gigether-options redundant-parent {{ interface['Address/CIDR/VLANs'] }}
+set chassis cluster redundancy-group 1 interface-monitor {{ interface['Interface'] }} weight 255
 {%- endif %}
 {%- endfor %}
 
