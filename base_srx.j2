@@ -227,24 +227,26 @@ deactivate security nat static rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zon
 {%- if interface['Description'] is defined %}
 set interfaces {{ interface['Interface'] }} {%- if  interface['Logical Unit'] is defined %} unit {{ interface['Logical Unit'] }} {%- endif %} description "{{ interface['Description'] }}"
 {%- endif %}
-{%- if interface['Family'] is defined and interface['Family'].startswith("inet") and interface['Logical Unit'] > 0 %}
+{%- if interface['Logical Unit'] is defined %}
+  {%- if interface['Family'] is defined and interface['Family'].startswith("inet") and interface['Logical Unit'] > 0 %}
 set interfaces {{ interface['Interface'] }} flexible-vlan-tagging
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} vlan-id {{ interface['Logical Unit'] }}
-{%- endif %}
-{%- if interface['Family'] == 'iso' or interface['Family'] == 'mpls' %}
+  {%- endif %}
+  {%- if interface['Family'] == 'iso' or interface['Family'] == 'mpls' %}
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family {{ interface['Family'] }}
-{%- elif interface['Family'] == 'ethernet-switching' %} 
+  {%- elif interface['Family'] == 'ethernet-switching' %} 
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family ethernet-switching vlan members {{ interface['Address/CIDR/VLANs'] }}
-{%- elif interface['Family'] == 'agg-member' %} 
+  {%- elif interface['Family'] == 'agg-member' %} 
 set interfaces {{ interface['Interface'] }} gigether-options redundant-parent {{ interface['Address/CIDR/VLANs'] }}
 set chassis cluster redundancy-group 1 interface-monitor {{ interface['Interface'] }} weight 255
-{%- elif interface['Family'] == 'bridge' %} 
+  {%- elif interface['Family'] == 'bridge' %} 
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family bridge vlan-id {{ interface['Address/CIDR/VLANs'] }}
-{%- elif interface['Address/CIDR/VLANs'] is not defined %}
-{%- elif interface['Address/CIDR/VLANs'] == 'DHCP' %}
+  {%- elif interface['Address/CIDR/VLANs'] is not defined %}
+  {%- elif interface['Address/CIDR/VLANs'] == 'DHCP' %}
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family {{ interface['Family'] }} dhcp
-{%- else %}
+  {%- else %}
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family {{ interface['Family'] }} address {{ interface['Address/CIDR/VLANs'] }}
+  {%- endif %}
 {%- endif %}
 {%- if interface['Type'] == 'aggregate' %}
 set interfaces {{ interface['Interface'] }} redundant-ether-options redundancy-group 1
