@@ -291,8 +291,8 @@ set security address-book {{ zone['Name'] }} attach zone {{ zone['Name'] }}
 {%- endfor %}
 {%- for object in objects if object['CIDR'] is defined %}
 set security address-book {{ object['Zone'] }} address {{ object['Name'] }} {{ object['CIDR'] }}
-{%- if object['memberOf'] is defined %}
-set security address-book {{ object['Zone'] }} address-set {{ object['memberOf'] }} address {{ object['Name'] }}
+{%- if object['member'] is defined %}
+set security address-book {{ object['Zone'] }} address-set {{ object['Name'] }} address {{ object['member'] }}
 {%- endif %}
 {%- endfor %}
 
