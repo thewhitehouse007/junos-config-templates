@@ -168,6 +168,9 @@ set security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To 
   {%- for app in policy['Application'] %}
 set security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To Zone'] }} policy {{ policy['Name'] }} match application {{ app }}
   {%- endfor %}
+  {%- for dynapp in policy['Dynamic Application'] %}
+set security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To Zone'] }} policy {{ policy['Name'] }} match dynamic-application {{ dynapp }}
+  {%- endfor %}
 set security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To Zone'] }} policy {{ policy['Name'] }} then {{ policy['Action'] }}
   {%- if policy['Log'] is defined %}
 set security policies from-zone {{ policy['From Zone'] }} to-zone {{ policy['To Zone'] }} policy {{ policy['Name'] }} then log session-init
@@ -245,16 +248,13 @@ set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }}
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family {{ interface['Family'] }} address {{ interface['Address/CIDR/VLANs'] }}
   {%- endif %}
 {%- endif %}
+
 {# Redundant (RETH) Interface Configuration #}
-{%- if interface['Type'] == 'aggregate' %}
-set interfaces {{ interface['Interface'] }} redundant-ether-options redundancy-group 1
 {%- if interface['Family'] == 'agg-member' %}
 set interfaces {{ interface['Interface'] }} gigether-options redundant-parent {{ interface['Address/CIDR/VLANs'] }}
 set chassis cluster redundancy-group 1 interface-monitor {{ interface['Interface'] }} weight 255
 {%- endif %}
 {%- endfor %}
-
-{# Calculate and configure Reth Interfaces #}
 {%- set reth_interfaces = [] %}
 {%- set reth_numbers = [] %}
 {#- Creates a list of all unique interfaces #}

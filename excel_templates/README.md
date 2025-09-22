@@ -46,7 +46,7 @@ Explaining some of the procedures for completing excel templates:<ul>
     
 ### Excel Files
 Some example Excel files available are:<ul>
-    <li>SRX, NAT & Security Policy - [SHA256](## "295F25FA429FE7527C12AA98242255DA25FFD71D63053B1FB16AF3E706562871")</li>
+    <li>SRX, NAT & Security Policy - [SHA256](## "3E18481E4776E705012C4035D536FB367BC7276B0C3A2B123FFE86BC9B6C3F0B")</li>
     <!-- <li>SRX, Site-to-Site IPSEC VPN,</li> -->
     </ul>
     

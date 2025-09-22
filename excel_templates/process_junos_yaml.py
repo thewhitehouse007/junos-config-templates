@@ -37,10 +37,11 @@ def merge_policies(policies):
         
         if key not in merged_policies:
             # Initialize with a copy of the policy
-            merged_policies[key] = {k: v for k, v in policy.items() if k not in ['Application', 'Source Address', 'Destination Address']}
+            merged_policies[key] = {k: v for k, v in policy.items() if k not in ['Application', 'Source Address', 'Destination Address', 'Dynamic Application']}
             merged_policies[key]['Application'] = set()
             merged_policies[key]['Source Address'] = set()
             merged_policies[key]['Destination Address'] = set()
+            if 'Dynamic Application' in policy: merged_policies[key]['Dynamic Application'] = set()
         else:
             # Keep the smallest Sequence number
             if 'Sequence' in policy and 'Sequence' in merged_policies[key]:
@@ -52,14 +53,16 @@ def merge_policies(policies):
             print(f"Different values for 'Action' or 'Enabled' not allowed.")
             continue  # Skip merging this policy if there's a conflict
 
-        # Add unique values to sets for 'Application', 'Source Address', and 'Destination Address'
+        # Add unique values to sets for 'Application', 'Dynamic Application', 'Source Address', and 'Destination Address'
         merged_policies[key]['Application'].add(policy['Application'].strip())
         merged_policies[key]['Source Address'].add(policy['Source Address'].strip())
         merged_policies[key]['Destination Address'].add(policy['Destination Address'].strip())
+        if 'Dynamic Application' in policy : merged_policies[key]['Dynamic Application'].add(policy['Dynamic Application'].strip())
     
     # Convert sets back to sorted lists for final output
     for policy in merged_policies.values():
         policy['Application'] = sorted(policy['Application'])
+        if 'Dynamic Application' in policy : policy['Dynamic Application'] = sorted(policy['Dynamic Application'])
         policy['Source Address'] = sorted(policy['Source Address'])
         policy['Destination Address'] = sorted(policy['Destination Address'])
     
