@@ -92,3 +92,6 @@ Configuration Groups ease the deployment and cleanup of configuration templates 
 A group can be de/activated and added/removed without affecting the root configuration on the device.
 Group Configurations are inherited by the root configuration using apply-groups {}, this is very flexible.
 For more information on Configuration Groups see... https://www.juniper.net/documentation/us/en/software/junos/cli/topics/topic-map/configuration-groups-usage.html
+
+NOTE: If you are using Mist managed Edge (SRXs) and want to apply Remote Access VPN (JSC) please move the 'gateway' configuration to the root confguration (outside of the configuration group) and change to order so the JSC Gateway is at the top. See, the following article for details...
+https://supportportal.juniper.net/s/article/SRX-Dynamic-Main-Mode-or-IKEv2-gateway-with-same-ike-external-interface-must-use-same-set-of-IKE-proposals-errorconfiguration-check-out-failed 
