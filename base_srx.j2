@@ -184,7 +184,7 @@ deactivate security policies from-zone {{ policy['From Zone'] }} to-zone {{ poli
   {%- endif %}
 {%- endfor %}
 
-{# NAT Configuration #}
+{# Source NAT Configuration #}
 {%- for nat in nat_rules %}
 {%- if nat['Type'] == "Source" %}
 set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} from zone {{ nat['From Zone'] }}
@@ -195,6 +195,9 @@ set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} 
 {%- else %}
 set security nat source pool {{ nat['Name'] }}-pool address {{ nat['Translated Address'] }}
 set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then source-nat pool {{ nat['Name'] }}-pool
+{%- endif %}
+{%- if nat['Description'] is defined %}
+set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} description "{{ nat['Description'] }}"
 {%- endif %}
 {%- if nat['Enabled'] == FALSE %}
 deactivate security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }}
@@ -211,6 +214,9 @@ set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'
 {%- if nat['Translated Port'] is defined %}
 set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then destination-port {{ nat['Translated Port'] }}
 {%- endif %}
+{%- if nat['Description'] is defined %}
+set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} description "{{ nat['Description'] }}"
+{%- endif %}
 {%- if nat['Enabled'] == FALSE %}
 deactivate security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }}
 {%- endif %}
@@ -219,6 +225,9 @@ deactivate security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['T
 set security nat static rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} from zone {{ nat['From Zone'] }}
 set security nat static rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} match destination-address {{ nat['Address'] }}
 set security nat static rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then static-nat prefix {{ nat['Translated Address'] }}
+{%- if nat['Description'] is defined %}
+set security nat static rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} description "{{ nat['Description'] }}"
+{%- endif %}
 {%- if nat['Enabled'] == FALSE %}
 deactivate security nat static rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }}
 {%- endif %}
