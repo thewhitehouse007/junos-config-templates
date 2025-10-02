@@ -30,8 +30,16 @@ def remove_junos_defaults(data):
 # Function to merge policies with matching 'From Zone', 'To Zone', and 'Name'
 def merge_policies(policies):
     merged_policies = {}
+    required_keys = ['From Zone', 'To Zone', 'Name']
     
-    for policy in policies:
+    for idx, policy in enumerate(policies, start=1):
+        # Skip merging this policy if required values are missing
+        missing = [k for k in required_keys if k not in policy or policy[k] is None]
+        if missing:
+            print(f"[ERROR] Policy at index {idx} is missing required keys: {missing}")
+            print(f"        Policy contents: {policy}")
+            continue
+
         # Unique key based on 'From Zone', 'To Zone', and 'Name'
         key = (policy['From Zone'], policy['To Zone'], policy['Name'])
         
@@ -47,10 +55,16 @@ def merge_policies(policies):
             if 'Sequence' in policy and 'Sequence' in merged_policies[key]:
                 merged_policies[key]['Sequence'] = min(merged_policies[key]['Sequence'], policy['Sequence'])
         
+        # Check for conflicts in 'Action'
+        if policy['Action'] != merged_policies[key]['Action']:
+            print(f"[ERROR] Policy at index {idx}, Conflict found, different values for 'Acton' not allowed.")
+            print(f"        Policy Contents: {policy}")
+            continue  # Skip merging this policy if there's a conflict
+
         # Check for conflicts in 'Action' and 'Enabled'
-        if policy['Action'] != merged_policies[key]['Action'] or policy['Enabled'] != merged_policies[key]['Enabled']: ## TODO: Causes KeyError ??
-            print(f"Conflict found for policy '{policy['Name']}' between zones '{policy['From Zone']}' and '{policy['To Zone']}'")
-            print(f"Different values for 'Action' or 'Enabled' not allowed.")
+        if 'Enabled' in policy and policy['Enabled'] != merged_policies[key]['Enabled']:
+            print(f"[ERROR] Policy at index {idx}, Conflict found, Different values for 'Enabled' not allowed.")
+            print(f"        Policy Contents: {policy}")
             continue  # Skip merging this policy if there's a conflict
 
         # Add unique values to sets for 'Application', 'Dynamic Application', 'Source Address', and 'Destination Address'
