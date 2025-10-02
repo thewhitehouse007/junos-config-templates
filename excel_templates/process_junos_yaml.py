@@ -23,7 +23,7 @@ def remove_junos_defaults(data):
     if "Zones" in data:
         cleaned_list = [
             row for row in data["Zones"]
-            if row.get("Name") != "global"  # Remove rows where 'Name' is 'global'
+            if row.get("Name") != "global" # Remove Zones where 'Name' is 'global'
         ]
         data["Zones"] = cleaned_list
 
@@ -83,7 +83,7 @@ def merge_policies(policies):
     # Return as a list of merged policies
     return list(merged_policies.values())
 
-# Function to set the specified Key the the specified Value if it does not exist
+# Function to set the specified Key to the specified Value if it does not exist
 def set_default_value(objects, key, default):
     for obj in objects:
         if key not in obj:
@@ -111,10 +111,23 @@ def sort_list_by(list, key):
     # Sort using the custom key
     return sorted(list, key=sort_key)
 
+# Function to decapitalize values in the specified Key
+def decapitalize_list(objects, key):
+    for object in objects:
+        if key in object and isinstance(object[key], str):
+            object[key] = object[key].lower()
+    return objects
+
 
 def main(data):
     # Removes the default configuration that is included in JunOS
     remove_junos_defaults(data)
+
+    # Decapitalize the User Class value for System from the spreadsheet 
+    data['System'] = decapitalize_list(data.get('System', []),'Default Remote User Class')
+
+    # Decapitalize the Application Protocols from the spreadsheet 
+    data['Applications'] = decapitalize_list(data.get('Applications', []),'Protocol')
     
     # Sorted the Lists in each Table for easy to read JunOS configuration 
     data["Objects"] = sort_list_by(data.get('Objects', []),'Zone')

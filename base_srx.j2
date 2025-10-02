@@ -11,11 +11,11 @@
 {%- set system_services = ["all", "any-service", "bootp", "dhcp", "dhcpv6", "dns", "finger", "ftp", "http", "https", "ident-reset", "ike", "lsping", "netconf", "ntp", "ping", "r2cp", "reverse-ssh", "reverse-telnet", "rlogin", "rpm", "rsh", "snmp", "snmp-trap", "ssh", "telnet", "tftp", "traceroute", "xnm-clear-text", "xnm-ssl"] %}
 
 {# System Settings #}
-{%- if System[1] %}
-{#- {%- if system['Cluster Role'] == 'Primary' %} #}
+{#- {%- if System[1] %} #}
+{%- if system['Cluster Role'] == 'Primary' %}
 set groups node0 system host-name {{ system['Firewall Name'] }}
-{#- {%- elif System[1]['Cluster Role'] == 'Secondary' %} #}
-set groups node1 system host-name {{ System[1]['Firewall Name'] }}
+{%- elif System['Cluster Role'] == 'Secondary' %}
+set groups node1 system host-name {{ System['Firewall Name'] }}
 set apply-groups "${node}"
 set chassis cluster redundancy-group 1 node 0 priority 100
 set chassis cluster redundancy-group 1 node 1 priority 1
@@ -190,7 +190,7 @@ deactivate security policies from-zone {{ policy['From Zone'] }} to-zone {{ poli
 set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} from zone {{ nat['From Zone'] }}
 set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} to zone {{ nat['To Zone'] }}
 set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} match source-address {{ nat['Address'] }}
-{%- if nat['Translated Address'] == "Interface" %}
+{%- if nat['Translated Address'] | lower == "interface" %}
 set security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then source-nat interface
 {%- else %}
 set security nat source pool {{ nat['Name'] }}-pool address {{ nat['Translated Address'] }}
@@ -205,14 +205,12 @@ deactivate security nat source rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zon
 {#- Destination NAT Configuration #}
 {%- elif nat['Type'] == "Destination" %}
 set security nat destination pool {{ nat['Name'] }}-pool address {{ nat['Translated Address'] }}
-{%- if nat['Translated Port'] is defined %}
-set security nat destination pool {{ nat['Name'] }}-pool address port {{ nat['Translated Port'] }}
-{%- endif %}
 set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} from zone {{ nat['From Zone'] }}
 set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} match destination-address {{ nat['Address'] }}
 set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then destination-nat pool {{ nat['Name'] }}-pool
 {%- if nat['Translated Port'] is defined %}
-set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} then destination-port {{ nat['Translated Port'] }}
+set security nat destination pool {{ nat['Name'] }}-pool address port {{ nat['Translated Port'] }}
+set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} match destination-port {{ nat['Translated Port'] }}
 {%- endif %}
 {%- if nat['Description'] is defined %}
 set security nat destination rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zone'] }} rule {{ nat['Name'] }} description "{{ nat['Description'] }}"
