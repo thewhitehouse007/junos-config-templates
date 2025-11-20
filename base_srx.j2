@@ -311,11 +311,12 @@ set applications application {{ app['Name'] }} application-protocol {{ app['ALG'
 {%- for zone in zones %}
 set security address-book {{ zone['Name'] }} attach zone {{ zone['Name'] }} 
 {%- endfor %}
-{%- for object in objects if object['CIDR'] is defined %}
+{%- for object in objects %}
+  {%- if object['CIDR'] is defined %}
 set security address-book {{ object['Zone'] }} address {{ object['Name'] }} {{ object['CIDR'] }}
-{%- if object['member'] is defined %}
+  {%- elif object['member'] is defined %}
 set security address-book {{ object['Zone'] }} address-set {{ object['Name'] }} address {{ object['member'] }}
-{%- endif %}
+  {%- endif %}
 {%- endfor %}
 
 {# Routing Instance Creation #}
