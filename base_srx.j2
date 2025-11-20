@@ -238,7 +238,8 @@ deactivate security nat static rule-set {{ nat['From Zone'] }}-to-{{ nat['To Zon
 set interfaces {{ interface['Interface'] }} {%- if  interface['Logical Unit'] is defined %} unit {{ interface['Logical Unit'] }} {%- endif %} description "{{ interface['Description'] }}"
 {%- endif %}
 {%- if interface['Logical Unit'] is defined %}
-  {%- if interface['Family'] is defined and interface['Family'].startswith("inet") and interface['Logical Unit'] > 0 %}
+  {%- if interface['Interface'].startswith('irb') %}
+  {%- elif interface['Family'] is defined and interface['Family'].startswith("inet") and interface['Logical Unit'] > 0 %}
 set interfaces {{ interface['Interface'] }} flexible-vlan-tagging
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} vlan-id {{ interface['Logical Unit'] }}
   {%- endif %}
@@ -255,23 +256,37 @@ set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }}
 set interfaces {{ interface['Interface'] }} unit {{ interface['Logical Unit'] }} family {{ interface['Family'] }} address {{ interface['Address/CIDR/VLANs'] }}
   {%- endif %}
 {%- endif %}
-
-{# Redundant (RETH) Interface Configuration #}
+{#- Aggregate (AE) Interface Additional Configuration #}
 {%- if interface['Family'] == 'agg-member' %}
+set interfaces {{ interface['Interface'] }} ether-options 802.3ad ae{{ interface['Address/CIDR/VLANs'] }}
+{%- endif %}
+{#- Redundant (RETH) Interface Configuration #}
+{%- if interface['Family'] == 'reth-member' %}
 set interfaces {{ interface['Interface'] }} gigether-options redundant-parent {{ interface['Address/CIDR/VLANs'] }}
 set chassis cluster redundancy-group 1 interface-monitor {{ interface['Interface'] }} weight 255
 {%- endif %}
 {%- endfor %}
 {%- set reth_interfaces = [] %}
+{%- set agg_interfaces = [] %}
 {%- set reth_numbers = [] %}
 {#- Creates a list of all unique interfaces #}
 {%- set unique_interfaces = interfaces|map(attribute='Interface')|unique|list %}
-{#- Filters and Creates a List of Unique Reth interfaces #}
+{#- Filters and Creates a List of Unique Reth and Aggregate interfaces #}
 {%- for unique_interface in unique_interfaces %}  
   {%- if unique_interface.startswith('reth') %} 
     {%- set _ = reth_interfaces.append(unique_interface) %}
   {%- endif %}
+  {%- if unique_interface.startswith('ae') %} 
+    {%- set _ = agg_interfaces.append(unique_interface) %}
+  {%- endif %}
 {%- endfor %}
+{#- Takes Action to configure LACP for aggregate interfaces if exist #}
+{%- if agg_interfaces|count > 0 %}
+  {%- for agg_interface in agg_interfaces %}
+set interfaces {{ agg_interface }} aggregated-ether-options lacp active
+set interfaces {{ agg_interface }} aggregated-ether-options lacp periodic fast
+  {%- endfor %}
+{%- endif %}
 {#- Takes Action to configure reth interfaces if exist #}
 {%- if reth_interfaces|count > 0 %}
   {%- for reth_interface in reth_interfaces %}
